@@ -106,6 +106,117 @@ class Enumerable(Generic[T]):
 
         return Enumerable(generate())
 
+    def first(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
+        """Return the first element (matching predicate, if given). Raises ValueError if none."""
+        for x in self:
+            if predicate is None or predicate(x):
+                return x
+        raise ValueError("Sequence contains no matching element")
+
+    def first_or_default(
+        self,
+        predicate: Optional[Callable[[T], bool]] = None,
+        default: Any = None,
+    ) -> Any:
+        """Like first, but returns `default` instead of raising."""
+        for x in self:
+            if predicate is None or predicate(x):
+                return x
+        return default
+
+    def single(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
+        """Return the only matching element. Raises ValueError if there are none or several."""
+        found = False
+        result = None
+        for x in self:
+            if predicate is None or predicate(x):
+                if found:
+                    raise ValueError("Sequence contains more than one matching element")
+                found = True
+                result = x
+        if not found:
+            raise ValueError("Sequence contains no matching element")
+        return result
+
+    def single_or_default(
+        self,
+        predicate: Optional[Callable[[T], bool]] = None,
+        default: Any = None,
+    ) -> Any:
+        """Return the only matching element, or `default` if none. Raises if several."""
+        found = False
+        result = default
+        for x in self:
+            if predicate is None or predicate(x):
+                if found:
+                    raise ValueError("Sequence contains more than one matching element")
+                found = True
+                result = x
+        return result
+
+    def last(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
+        """Return the last element (matching predicate, if given). Raises ValueError if none."""
+        found = False
+        result = None
+        for x in self:
+            if predicate is None or predicate(x):
+                found = True
+                result = x
+        if not found:
+            raise ValueError("Sequence contains no matching element")
+        return result
+
+    def last_or_default(
+        self,
+        predicate: Optional[Callable[[T], bool]] = None,
+        default: Any = None,
+    ) -> Any:
+        """Like last, but returns `default` instead of raising."""
+        result = default
+        for x in self:
+            if predicate is None or predicate(x):
+                result = x
+        return result
+
+    def element_at(self, index: int) -> T:
+        """Return the element at a zero-based index. Raises IndexError if out of range."""
+        if index < 0:
+            raise IndexError("index must be non-negative")
+        for i, x in enumerate(self):
+            if i == index:
+                return x
+        raise IndexError("index out of range")
+
+    def element_at_or_default(self, index: int, default: Any = None) -> Any:
+        """Like element_at, but returns `default` instead of raising."""
+        if index < 0:
+            return default
+        for i, x in enumerate(self):
+            if i == index:
+                return x
+        return default
+
+    def any(self, predicate: Optional[Callable[[T], bool]] = None) -> bool:
+        """True if the sequence has any element (matching predicate, if given)."""
+        for x in self:
+            if predicate is None or predicate(x):
+                return True
+        return False
+
+    def all(self, predicate: Callable[[T], bool]) -> bool:
+        """True if every element satisfies predicate (vacuously True when empty)."""
+        for x in self:
+            if not predicate(x):
+                return False
+        return True
+
+    def contains(self, value: T) -> bool:
+        """True if the sequence contains `value` (compared with ==)."""
+        for x in self:
+            if x == value:
+                return True
+        return False
+
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
 
