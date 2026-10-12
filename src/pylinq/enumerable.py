@@ -347,6 +347,65 @@ class Enumerable(Generic[T]):
 
         return Enumerable(generate())
 
+    def group_by(
+        self,
+        key_selector: Callable[[T], Any],
+        element_selector: Optional[Callable[[T], Any]] = None,
+        result_selector: Optional[Callable[[Any, Enumerable], Any]] = None,
+    ) -> Enumerable:
+        """Group elements by key.
+
+        Yields Grouping objects (with a .key), or the results of
+        result_selector(key, group) if given.
+        """
+        def generate():
+            groups: dict = {}
+            for x in self:
+                key = key_selector(x)
+                element = x if element_selector is None else element_selector(x)
+                groups.setdefault(key, []).append(element)
+            for key, items in groups.items():
+                group = Grouping(key, items)
+                yield group if result_selector is None else result_selector(key, group)
+
+        return Enumerable(generate())
+
+    def join(
+        self,
+        inner: Iterable[U],
+        outer_key_selector: Callable[[T], Any],
+        inner_key_selector: Callable[[U], Any],
+        result_selector: Callable[[T, U], R],
+    ) -> Enumerable[R]:
+        """Inner join: pair each element with every inner element sharing its key."""
+        def generate():
+            lookup: dict = {}
+            for i in inner:
+                lookup.setdefault(inner_key_selector(i), []).append(i)
+            for o in self:
+                for i in lookup.get(outer_key_selector(o), ()):
+                    yield result_selector(o, i)
+
+        return Enumerable(generate())
+
+    def group_join(
+        self,
+        inner: Iterable[U],
+        outer_key_selector: Callable[[T], Any],
+        inner_key_selector: Callable[[U], Any],
+        result_selector: Callable[[T, Enumerable[U]], R],
+    ) -> Enumerable[R]:
+        """Left join: pair each element with an Enumerable of its matching inner elements."""
+        def generate():
+            lookup: dict = {}
+            for i in inner:
+                lookup.setdefault(inner_key_selector(i), []).append(i)
+            for o in self:
+                matches = lookup.get(outer_key_selector(o), [])
+                yield result_selector(o, Enumerable(matches))
+
+        return Enumerable(generate())
+
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
 
@@ -381,3 +440,17 @@ class OrderedEnumerable(Enumerable[T]):
     ) -> OrderedEnumerable[T]:
         """Add a secondary descending sort key."""
         return OrderedEnumerable(self._source, self._keys + [(key_selector, True)])
+
+class Grouping(Enumerable[T]):
+    """A group of elements sharing a common key."""
+
+    def __init__(self, key: Any, items: Iterable[T]) -> None:
+        super().__init__(items)
+        self._key = key
+
+    @property
+    def key(self) -> Any:
+        return self._key
+
+    def __repr__(self) -> str:
+        return f"Grouping(key={self._key!r}, items={self._source!r})"
