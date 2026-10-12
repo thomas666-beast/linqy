@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from pylinq import Enumerable
+from linqy import Enumerable
 
 
 def test_take():

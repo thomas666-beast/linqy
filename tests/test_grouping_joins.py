@@ -1,4 +1,4 @@
-from pylinq import Enumerable
+from linqy import Enumerable
 
 CUSTOMERS = [
     {"id": 1, "name": "Ann"},

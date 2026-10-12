@@ -1,4 +1,4 @@
-from pylinq import Enumerable
+from linqy import Enumerable
 
 PEOPLE = [("Bob", 30), ("Ann", 25), ("Cy", 30), ("Dee", 25)]
 

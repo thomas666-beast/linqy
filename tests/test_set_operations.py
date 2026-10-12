@@ -1,4 +1,4 @@
-from pylinq import Enumerable
+from linqy import Enumerable
 
 
 # distinct

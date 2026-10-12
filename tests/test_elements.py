@@ -1,6 +1,6 @@
 import pytest
 
-from pylinq import Enumerable
+from linqy import Enumerable
 
 
 # first / first_or_default

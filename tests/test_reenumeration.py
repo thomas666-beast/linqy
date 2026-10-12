@@ -1,4 +1,4 @@
-from pylinq import Enumerable
+from linqy import Enumerable
 
 
 def test_query_can_be_enumerated_twice():

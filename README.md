@@ -1,4 +1,4 @@
-# pylinq
+# linqy
 
 LINQ-style query operators for Python. Chain `where`, `select`,
 `order_by`, `group_by`, `join` and more over any iterable, with lazy
@@ -13,7 +13,7 @@ pip install -e .
 ## Example
 
 ```python
-from pylinq import Enumerable
+from linqy import Enumerable
 
 people = [
     {"name": "Ann", "age": 25, "city": "Munich"},
@@ -57,7 +57,7 @@ by_city = (
 - **Re-enumerable:** a query can be enumerated more than once, and each
   enumeration re-runs it. The exception is a query built on a one-shot
   source such as a generator.
-- **Errors:** where C# throws `InvalidOperationException`, pylinq raises
+- **Errors:** where C# throws `InvalidOperationException`, linqy raises
   `ValueError`. `element_at` raises `IndexError`.
 - **Hashing:** set operations, `group_by`, `join`, and `to_dict` need
   hashable keys.
