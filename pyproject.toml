@@ -1,0 +1,9 @@
+[project]
+name = "pylinq"
+version = "0.1.0"
+description = "LINQ-style lazy query operators for Python"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
