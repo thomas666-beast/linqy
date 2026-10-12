@@ -25,11 +25,11 @@ class Enumerable(Generic[T]):
 
     def where(self, predicate: Callable[[T], bool]) -> Enumerable[T]:
         """Keep only the elements for which predicate returns True."""
-        return Enumerable(x for x in self if predicate(x))
+        return _lazy(lambda: (x for x in self if predicate(x)))
 
     def select(self, selector: Callable[[T], R]) -> Enumerable[R]:
         """Transform each element using selector."""
-        return Enumerable(selector(x) for x in self)
+        return _lazy(lambda: (selector(x) for x in self))
 
     def select_many(
         self,
@@ -49,7 +49,7 @@ class Enumerable(Generic[T]):
                     else:
                         yield result_selector(outer, inner)
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def order_by(self, key_selector: Callable[[T], Any]) -> OrderedEnumerable[T]:
         """Sort ascending by the key returned from key_selector."""
@@ -63,11 +63,11 @@ class Enumerable(Generic[T]):
 
     def take(self, count: int) -> Enumerable[T]:
         """Return the first `count` elements. Non-positive counts give an empty sequence."""
-        return Enumerable(islice(self, max(count, 0)))
+        return _lazy(lambda: islice(self, max(count, 0)))
 
     def skip(self, count: int) -> Enumerable[T]:
         """Skip the first `count` elements and return the rest."""
-        return Enumerable(islice(self, max(count, 0), None))
+        return _lazy(lambda: islice(self, max(count, 0), None))
 
     def take_while(self, predicate: Callable[[T], bool]) -> Enumerable[T]:
         """Return elements while predicate is True, stopping at the first failure."""
@@ -77,7 +77,7 @@ class Enumerable(Generic[T]):
                     return
                 yield x
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def skip_while(self, predicate: Callable[[T], bool]) -> Enumerable[T]:
         """Skip elements while predicate is True, then return everything after."""
@@ -89,7 +89,7 @@ class Enumerable(Generic[T]):
                 skipping = False
                 yield x
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def chunk(self, size: int) -> Enumerable[list[T]]:
         """Split the sequence into lists of at most `size` elements."""
@@ -104,7 +104,7 @@ class Enumerable(Generic[T]):
                     return
                 yield batch
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def first(self, predicate: Optional[Callable[[T], bool]] = None) -> T:
         """Return the first element (matching predicate, if given). Raises ValueError if none."""
@@ -310,7 +310,7 @@ class Enumerable(Generic[T]):
                     seen.add(key)
                     yield x
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def union(self, second: Iterable[T]) -> Enumerable[T]:
         """Distinct elements from this sequence followed by those from `second`."""
@@ -322,7 +322,7 @@ class Enumerable(Generic[T]):
                         seen.add(x)
                         yield x
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def intersect(self, second: Iterable[T]) -> Enumerable[T]:
         """Distinct elements that appear in both sequences, in this sequence's order."""
@@ -334,7 +334,7 @@ class Enumerable(Generic[T]):
                     seen.add(x)
                     yield x
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def except_(self, second: Iterable[T]) -> Enumerable[T]:
         """Distinct elements of this sequence that do not appear in `second`."""
@@ -345,7 +345,7 @@ class Enumerable(Generic[T]):
                     seen.add(x)
                     yield x
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def group_by(
         self,
@@ -368,7 +368,7 @@ class Enumerable(Generic[T]):
                 group = Grouping(key, items)
                 yield group if result_selector is None else result_selector(key, group)
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def join(
         self,
@@ -386,7 +386,7 @@ class Enumerable(Generic[T]):
                 for i in lookup.get(outer_key_selector(o), ()):
                     yield result_selector(o, i)
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def group_join(
         self,
@@ -404,7 +404,7 @@ class Enumerable(Generic[T]):
                 matches = lookup.get(outer_key_selector(o), [])
                 yield result_selector(o, Enumerable(matches))
 
-        return Enumerable(generate())
+        return _lazy(generate)
     
     def zip(
         self,
@@ -419,7 +419,7 @@ class Enumerable(Generic[T]):
             for a, b in zip(self, second):
                 yield (a, b) if result_selector is None else result_selector(a, b)
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def concat(self, second: Iterable[T]) -> Enumerable[T]:
         """Append `second` to this sequence (duplicates are kept)."""
@@ -427,14 +427,14 @@ class Enumerable(Generic[T]):
             yield from self
             yield from second
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def reverse(self) -> Enumerable[T]:
         """Reverse the order of the elements."""
         def generate():
             yield from reversed(list(self))
 
-        return Enumerable(generate())
+        return _lazy(generate)
 
     def to_dict(
         self,
@@ -502,3 +502,19 @@ class Grouping(Enumerable[T]):
 
     def __repr__(self) -> str:
         return f"Grouping(key={self._key!r}, items={self._source!r})"
+
+class _LazyEnumerable(Enumerable[T]):
+    """An Enumerable that rebuilds its iterator on every enumeration."""
+
+    def __init__(self, factory: Callable[[], Iterable[T]]) -> None:
+        self._factory = factory
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self._factory())
+
+    def __repr__(self) -> str:
+        return "Enumerable(<query>)"
+
+
+def _lazy(factory: Callable[[], Iterable[T]]) -> Enumerable[T]:
+    return _LazyEnumerable(factory)
