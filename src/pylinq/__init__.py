@@ -1,3 +1,3 @@
-from .enumerable import Enumerable
+from .enumerable import Enumerable, OrderedEnumerable
 
-__all__ = ["Enumerable"]
+__all__ = ["Enumerable", "OrderedEnumerable"]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterable, Iterator, Optional, TypeVar
+from typing import Any, Callable, Generic, Iterable, Iterator, Optional, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -50,5 +50,47 @@ class Enumerable(Generic[T]):
 
         return Enumerable(generate())
 
+    def order_by(self, key_selector: Callable[[T], Any]) -> OrderedEnumerable[T]:
+        """Sort ascending by the key returned from key_selector."""
+        return OrderedEnumerable(self, [(key_selector, False)])
+
+    def order_by_descending(
+        self, key_selector: Callable[[T], Any]
+    ) -> OrderedEnumerable[T]:
+        """Sort descending by the key returned from key_selector."""
+        return OrderedEnumerable(self, [(key_selector, True)])
+
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
+
+class OrderedEnumerable(Enumerable[T]):
+    """An Enumerable with a sort order. Supports then_by chaining.
+
+    Sorting happens when the sequence is iterated, not when it is built.
+    """
+
+    def __init__(
+        self,
+        source: Iterable[T],
+        keys: list[tuple[Callable[[T], Any], bool]],
+    ) -> None:
+        super().__init__(source)
+        self._keys = keys  # list of (key_selector, descending)
+
+    def __iter__(self) -> Iterator[T]:
+        items = list(self._source)
+        # sort() is stable, so sorting by the last key first and the
+        # first key last gives the correct multi-key ordering.
+        for key, descending in reversed(self._keys):
+            items.sort(key=key, reverse=descending)
+        return iter(items)
+
+    def then_by(self, key_selector: Callable[[T], Any]) -> OrderedEnumerable[T]:
+        """Add a secondary ascending sort key."""
+        return OrderedEnumerable(self._source, self._keys + [(key_selector, False)])
+
+    def then_by_descending(
+        self, key_selector: Callable[[T], Any]
+    ) -> OrderedEnumerable[T]:
+        """Add a secondary descending sort key."""
+        return OrderedEnumerable(self._source, self._keys + [(key_selector, True)])
