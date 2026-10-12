@@ -217,6 +217,84 @@ class Enumerable(Generic[T]):
                 return True
         return False
 
+    def count(self, predicate: Optional[Callable[[T], bool]] = None) -> int:
+        """Count elements, or only those matching predicate."""
+        total = 0
+        for x in self:
+            if predicate is None or predicate(x):
+                total += 1
+        return total
+
+    def sum(self, selector: Optional[Callable[[T], Any]] = None) -> Any:
+        """Sum the elements (or the selected values). Empty gives 0."""
+        total = 0
+        for x in self:
+            total += x if selector is None else selector(x)
+        return total
+
+    def min(self, selector: Optional[Callable[[T], Any]] = None) -> Any:
+        """Smallest element (or selected value). Raises ValueError if empty."""
+        it = iter(self)
+        try:
+            first = next(it)
+        except StopIteration:
+            raise ValueError("Sequence contains no elements") from None
+        result = first if selector is None else selector(first)
+        for x in it:
+            value = x if selector is None else selector(x)
+            if value < result:
+                result = value
+        return result
+
+    def max(self, selector: Optional[Callable[[T], Any]] = None) -> Any:
+        """Largest element (or selected value). Raises ValueError if empty."""
+        it = iter(self)
+        try:
+            first = next(it)
+        except StopIteration:
+            raise ValueError("Sequence contains no elements") from None
+        result = first if selector is None else selector(first)
+        for x in it:
+            value = x if selector is None else selector(x)
+            if value > result:
+                result = value
+        return result
+
+    def average(self, selector: Optional[Callable[[T], Any]] = None) -> float:
+        """Mean of the elements (or selected values). Raises ValueError if empty."""
+        total = 0
+        n = 0
+        for x in self:
+            total += x if selector is None else selector(x)
+            n += 1
+        if n == 0:
+            raise ValueError("Sequence contains no elements")
+        return total / n
+
+    _NO_SEED = object()
+
+    def aggregate(
+        self,
+        func: Callable[[Any, T], Any],
+        seed: Any = _NO_SEED,
+    ) -> Any:
+        """Fold the sequence with func(accumulator, element).
+
+        Without a seed, the first element is the starting accumulator
+        (ValueError if empty). With a seed, an empty sequence returns it.
+        """
+        it = iter(self)
+        if seed is Enumerable._NO_SEED:
+            try:
+                acc = next(it)
+            except StopIteration:
+                raise ValueError("Sequence contains no elements") from None
+        else:
+            acc = seed
+        for x in it:
+            acc = func(acc, x)
+        return acc
+
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
 
