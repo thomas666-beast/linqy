@@ -7,7 +7,7 @@ evaluation.
 ## Install
 
 ```bash
-pip install -e .
+pip install linqy
 ```
 
 ## Example
