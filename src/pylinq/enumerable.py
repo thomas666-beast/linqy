@@ -295,6 +295,58 @@ class Enumerable(Generic[T]):
             acc = func(acc, x)
         return acc
 
+    def distinct(
+        self, key_selector: Optional[Callable[[T], Any]] = None
+    ) -> Enumerable[T]:
+        """Remove duplicates, keeping the first occurrence of each.
+
+        If key_selector is given, uniqueness is decided by the selected key.
+        """
+        def generate():
+            seen = set()
+            for x in self:
+                key = x if key_selector is None else key_selector(x)
+                if key not in seen:
+                    seen.add(key)
+                    yield x
+
+        return Enumerable(generate())
+
+    def union(self, second: Iterable[T]) -> Enumerable[T]:
+        """Distinct elements from this sequence followed by those from `second`."""
+        def generate():
+            seen = set()
+            for source in (self, second):
+                for x in source:
+                    if x not in seen:
+                        seen.add(x)
+                        yield x
+
+        return Enumerable(generate())
+
+    def intersect(self, second: Iterable[T]) -> Enumerable[T]:
+        """Distinct elements that appear in both sequences, in this sequence's order."""
+        def generate():
+            allowed = set(second)
+            seen = set()
+            for x in self:
+                if x in allowed and x not in seen:
+                    seen.add(x)
+                    yield x
+
+        return Enumerable(generate())
+
+    def except_(self, second: Iterable[T]) -> Enumerable[T]:
+        """Distinct elements of this sequence that do not appear in `second`."""
+        def generate():
+            seen = set(second)
+            for x in self:
+                if x not in seen:
+                    seen.add(x)
+                    yield x
+
+        return Enumerable(generate())
+
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
 
