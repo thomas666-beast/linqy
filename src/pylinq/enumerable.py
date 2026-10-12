@@ -405,6 +405,54 @@ class Enumerable(Generic[T]):
                 yield result_selector(o, Enumerable(matches))
 
         return Enumerable(generate())
+    
+    def zip(
+        self,
+        second: Iterable[U],
+        result_selector: Optional[Callable[[T, U], R]] = None,
+    ) -> Enumerable:
+        """Pair elements from both sequences, stopping at the shorter one.
+
+        Yields tuples, or result_selector(a, b) if given.
+        """
+        def generate():
+            for a, b in zip(self, second):
+                yield (a, b) if result_selector is None else result_selector(a, b)
+
+        return Enumerable(generate())
+
+    def concat(self, second: Iterable[T]) -> Enumerable[T]:
+        """Append `second` to this sequence (duplicates are kept)."""
+        def generate():
+            yield from self
+            yield from second
+
+        return Enumerable(generate())
+
+    def reverse(self) -> Enumerable[T]:
+        """Reverse the order of the elements."""
+        def generate():
+            yield from reversed(list(self))
+
+        return Enumerable(generate())
+
+    def to_dict(
+        self,
+        key_selector: Callable[[T], Any],
+        element_selector: Optional[Callable[[T], Any]] = None,
+    ) -> dict:
+        """Build a dict. Raises ValueError if two elements produce the same key."""
+        result: dict = {}
+        for x in self:
+            key = key_selector(x)
+            if key in result:
+                raise ValueError(f"Duplicate key: {key!r}")
+            result[key] = x if element_selector is None else element_selector(x)
+        return result
+
+    def to_set(self) -> set:
+        """Collect the elements into a set."""
+        return set(self)
 
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
