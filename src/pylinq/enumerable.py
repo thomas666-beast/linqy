@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import islice
 from typing import Any, Callable, Generic, Iterable, Iterator, Optional, TypeVar
 
 T = TypeVar("T")
@@ -59,6 +60,51 @@ class Enumerable(Generic[T]):
     ) -> OrderedEnumerable[T]:
         """Sort descending by the key returned from key_selector."""
         return OrderedEnumerable(self, [(key_selector, True)])
+
+    def take(self, count: int) -> Enumerable[T]:
+        """Return the first `count` elements. Non-positive counts give an empty sequence."""
+        return Enumerable(islice(self, max(count, 0)))
+
+    def skip(self, count: int) -> Enumerable[T]:
+        """Skip the first `count` elements and return the rest."""
+        return Enumerable(islice(self, max(count, 0), None))
+
+    def take_while(self, predicate: Callable[[T], bool]) -> Enumerable[T]:
+        """Return elements while predicate is True, stopping at the first failure."""
+        def generate():
+            for x in self:
+                if not predicate(x):
+                    return
+                yield x
+
+        return Enumerable(generate())
+
+    def skip_while(self, predicate: Callable[[T], bool]) -> Enumerable[T]:
+        """Skip elements while predicate is True, then return everything after."""
+        def generate():
+            skipping = True
+            for x in self:
+                if skipping and predicate(x):
+                    continue
+                skipping = False
+                yield x
+
+        return Enumerable(generate())
+
+    def chunk(self, size: int) -> Enumerable[list[T]]:
+        """Split the sequence into lists of at most `size` elements."""
+        if size < 1:
+            raise ValueError("size must be greater than 0")
+
+        def generate():
+            it = iter(self)
+            while True:
+                batch = list(islice(it, size))
+                if not batch:
+                    return
+                yield batch
+
+        return Enumerable(generate())
 
     def __repr__(self) -> str:
         return f"Enumerable({self._source!r})"
